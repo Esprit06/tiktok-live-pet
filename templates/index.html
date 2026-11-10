@@ -255,7 +255,7 @@
         </div>
 
         <div class="event-feed" id="event-feed">
-            <div class="event-item">🚀 เปิดระบบเสียงเอฟเฟกต์ (SFX) แล้ว!</div>
+            <div class="event-item">🚀 ระบบเชื่อมต่อ Cloud พร้อมใช้งาน!</div>
         </div>
 
         <div class="test-panel">
@@ -268,25 +268,25 @@
     </div>
 
     <script>
-        var socket = io();
+        // 🔄 ตั้งค่า Socket ให้รองรับการเชื่อมต่อบน Cloud อย่างเสถียร (Polling + Websocket)
+        var socket = io({
+            transports: ['polling', 'websocket']
+        });
 
         // 🎵 โหลดไฟล์เสียงเอฟเฟกต์
         const giftSound = new Audio('/static/sounds/gift.mp3');
         const evolveSound = new Audio('/static/sounds/evolve.mp3');
         
-        // ตัวแปรเก็บสเตจปัจจุบันไว้เช็กตอนวิวัฒนาการ
         let currentStageTracker = Number('{{ pet.stage }}');
 
         function updateUI(data) {
             document.getElementById('stage-name-text').innerText = data.stage_name;
             document.getElementById('status-text').innerText = data.status;
             
-            // 🌟 ระบบเช็กการวิวัฒนาการ: ถ้าสเตจเพิ่มขึ้น ให้เล่นเสียงเอฟเฟกต์วิวัฒนาการ
             if (data.stage > currentStageTracker) {
                 evolveSound.play().catch(e => console.log("Audio play blocked by browser policy"));
                 currentStageTracker = data.stage;
             } else if (data.stage < currentStageTracker) {
-                // ถ้าหิวจนร่างลดลง อัปเดตตัวติดตามตาม
                 currentStageTracker = data.stage;
             }
 
@@ -335,7 +335,6 @@
             item.innerText = data.text;
             feed.prepend(item);
             
-            // 🎁 ถ้ามีกิจกรรมส่งของขวัญ ให้เล่นเสียงเอฟเฟกต์ของขวัญ
             if (data.text.includes('🎁')) {
                 giftSound.play().catch(e => console.log("Audio play blocked by browser policy"));
             }
