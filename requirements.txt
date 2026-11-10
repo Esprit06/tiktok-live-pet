@@ -2,3 +2,5 @@ Flask
 Flask-SocketIO
 TikTokLive
 gunicorn
+gevent
+gevent-websocket
