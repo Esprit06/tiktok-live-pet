@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>24/7 Idle Pet: ภูติน้อยจิ๋ว</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #05050a;
+            color: white;
+            font-family: 'Prompt', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 440px;
+            height: 820px;
+            background: linear-gradient(180deg, #0f1c24 0%, #080e14 100%);
+            border: 3px solid #3ef0c5;
+            border-radius: 30px;
+            box-shadow: 0 0 35px rgba(62, 240, 197, 0.4), inset 0 0 20px rgba(62, 240, 197, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .game-title {
+            font-size: 19px;
+            color: #5ffbc3;
+            font-weight: 700;
+            margin-bottom: 4px;
+            text-shadow: 0 0 12px rgba(95, 251, 195, 0.6);
+        }
+
+        .stage-title {
+            font-size: 14px;
+            background: linear-gradient(135deg, #23392b 0%, #111d17 100%);
+            border: 2px solid #ffd700;
+            padding: 4px 16px;
+            border-radius: 20px;
+            color: #ffd700;
+            font-weight: 600;
+            margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .pet-stage {
+            width: 190px;
+            height: 190px;
+            background: radial-gradient(circle, rgba(62, 240, 197, 0.25) 0%, rgba(0,0,0,0.6) 75%);
+            border: 2px solid rgba(62, 240, 197, 0.5);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin: 2px 0 10px 0;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+        .pet-avatar-img {
+            width: 155px;
+            height: 155px;
+            object-fit: contain;
+            animation: floatPet 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 12px rgba(255,255,255,0.4));
+        }
+
+        @keyframes floatPet {
+            0% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.03); }
+            100% { transform: translateY(0px) scale(1); }
+        }
+
+        .status-box {
+            background: rgba(10, 20, 25, 0.85);
+            border: 1px solid #3ef0c5;
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #a8dadc;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stats-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .stat-row {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .bar-bg {
+            width: 100%;
+            height: 10px;
+            background: #080c10;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(62, 240, 197, 0.3);
+        }
+        .bar-fill {
+            height: 100%;
+            transition: width 0.4s ease;
+            border-radius: 4px;
+        }
+        #exp-fill { background: linear-gradient(90deg, #ffd700, #ff8800); }
+        #hunger-fill { background: linear-gradient(90deg, #ff4d4d, #ff6b6b); }
+
+        .leaderboard-box {
+            width: 100%;
+            background: rgba(15, 28, 36, 0.9);
+            border: 1px solid #ffd700;
+            border-radius: 10px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+        .leaderboard-title {
+            font-size: 11px;
+            color: #ffd700;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .leaderboard-list {
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+        }
+        .supporter-item {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 4px 6px;
+            text-align: center;
+            font-size: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        .supporter-rank { color: #ffd700; font-weight: bold; }
+        .supporter-name { color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .event-feed {
+            width: 100%;
+            height: 85px;
+            background: rgba(6, 12, 18, 0.75);
+            border: 1px solid rgba(62, 240, 197, 0.3);
+            border-radius: 10px;
+            padding: 6px;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 3px;
+            font-size: 10px;
+            box-sizing: border-box;
+        }
+        .event-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 3px 6px;
+            border-radius: 4px;
+            border-left: 2px solid #3ef0c5;
+        }
+
+        .test-panel {
+            position: absolute;
+            top: 20px;
+            right: -215px;
+            background: #0f1c24;
+            border: 2px solid #ffd700;
+            padding: 12px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 195px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        .test-btn {
+            background: #3ef0c5;
+            color: #05050a;
+            border: none;
+            padding: 7px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Prompt', sans-serif;
+            transition: 0.2s;
+        }
+        .test-btn:hover { background: #5ffbc3; transform: scale(1.02); }
+        .test-btn.gift { background: #ffd700; color: #05050a; }
+        .test-btn.cmd { background: #6c5ce7; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="game-title">✨ TikTok Idle Pet 24/7 ✨</div>
+        <div class="stage-title" id="stage-name-text">{{ pet.stage_name }}</div>
+
+        <div class="pet-stage" id="pet-media-container">
+            <img class="pet-avatar-img" id="pet-image" src="{{ pet.image_url }}" alt="Pet Avatar">
+        </div>
+
+        <div class="status-box" id="status-text">{{ pet.status }}</div>
+
+        <div class="stats-container">
+            <div class="stat-row">
+                <div class="stat-label">
+                    <span>✨ วิวัฒนาการ EXP</span>
+                    <span id="exp-text">{{ pet.exp }} / {{ pet.max_exp }}</span>
+                </div>
+                <div class="bar-bg"><div class="bar-fill" id="exp-fill" style="width: 0%;"></div></div>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-label">
+                    <span>🍖 ความอิ่ม (Hunger)</span>
+                    <span id="hunger-text">{{ pet.hunger }}%</span>
+                </div>
+                <div class="bar-bg"><div class="bar-fill" id="hunger-fill" style="width: 0%;"></div></div>
+            </div>
+        </div>
+
+        <div class="leaderboard-box">
+            <div class="leaderboard-title">🏆 Top Supporters</div>
+            <div class="leaderboard-list" id="leaderboard-container">
+                <div class="supporter-item"><span class="supporter-name" style="color:#888;">ยังไม่มีผู้สนับสนุน</span></div>
+            </div>
+        </div>
+
+        <div class="event-feed" id="event-feed">
+            <div class="event-item">🚀 เปิดระบบเสียงเอฟเฟกต์ (SFX) แล้ว!</div>
+        </div>
+
+        <div class="test-panel">
+            <div style="font-size: 12px; color: #ffd700; font-weight: bold; text-align: center;">⚙️ เมนูจัดการ</div>
+            <button class="test-btn" onclick="simAction('comment')">💬 จำลองพิมพ์คอมเมนต์</button>
+            <button class="test-btn gift" onclick="simAction('gift')">🎁 จำลองส่งของขวัญ</button>
+            <button class="test-btn cmd" onclick="simAction('status')">🤖 จำลอง !status</button>
+            <button class="test-btn cmd" onclick="simAction('help')">💡 จำลอง !help</button>
+        </div>
+    </div>
+
+    <script>
+        var socket = io();
+
+        // 🎵 โหลดไฟล์เสียงเอฟเฟกต์
+        const giftSound = new Audio('/static/sounds/gift.mp3');
+        const evolveSound = new Audio('/static/sounds/evolve.mp3');
+        
+        // ตัวแปรเก็บสเตจปัจจุบันไว้เช็กตอนวิวัฒนาการ
+        let currentStageTracker = Number('{{ pet.stage }}');
+
+        function updateUI(data) {
+            document.getElementById('stage-name-text').innerText = data.stage_name;
+            document.getElementById('status-text').innerText = data.status;
+            
+            // 🌟 ระบบเช็กการวิวัฒนาการ: ถ้าสเตจเพิ่มขึ้น ให้เล่นเสียงเอฟเฟกต์วิวัฒนาการ
+            if (data.stage > currentStageTracker) {
+                evolveSound.play().catch(e => console.log("Audio play blocked by browser policy"));
+                currentStageTracker = data.stage;
+            } else if (data.stage < currentStageTracker) {
+                // ถ้าหิวจนร่างลดลง อัปเดตตัวติดตามตาม
+                currentStageTracker = data.stage;
+            }
+
+            var container = document.getElementById('pet-media-container');
+            var url = data.image_url;
+            
+            if (url.endsWith('.mp4') || url.endsWith('.webm')) {
+                container.innerHTML = `<video class="pet-avatar-img" autoplay muted loop playsinline src="${url}"></video>`;
+            } else {
+                container.innerHTML = `<img class="pet-avatar-img" id="pet-image" src="${url}" alt="Pet Avatar">`;
+            }
+            
+            var expPercent = (data.exp / data.max_exp) * 100;
+            document.getElementById('exp-fill').style.width = expPercent + '%';
+            document.getElementById('exp-text').innerText = data.exp + ' / ' + data.max_exp;
+
+            document.getElementById('hunger-fill').style.width = data.hunger + '%';
+            document.getElementById('hunger-text').innerText = data.hunger + '%';
+
+            var lbContainer = document.getElementById('leaderboard-container');
+            if (data.top_supporters && data.top_supporters.length > 0) {
+                var html = '';
+                data.top_supporters.forEach((sup, index) => {
+                    var rankIcon = ['🥇', '🥈', '🥉'][index] || `#${index+1}`;
+                    html += `
+                        <div class="supporter-item">
+                            <div class="supporter-rank">${rankIcon}</div>
+                            <div class="supporter-name" title="${sup.name}">${sup.name}</div>
+                        </div>
+                    `;
+                });
+                lbContainer.innerHTML = html;
+            } else {
+                lbContainer.innerHTML = `<div class="supporter-item" style="width:100%;"><span class="supporter-name" style="color:#888;">ยังไม่มีผู้สนับสนุน</span></div>`;
+            }
+        }
+
+        socket.on('update_pet', function(data) {
+            updateUI(data);
+        });
+
+        socket.on('live_event', function(data) {
+            var feed = document.getElementById('event-feed');
+            var item = document.createElement('div');
+            item.className = 'event-item';
+            item.innerText = data.text;
+            feed.prepend(item);
+            
+            // 🎁 ถ้ามีกิจกรรมส่งของขวัญ ให้เล่นเสียงเอฟเฟกต์ของขวัญ
+            if (data.text.includes('🎁')) {
+                giftSound.play().catch(e => console.log("Audio play blocked by browser policy"));
+            }
+
+            if (feed.children.length > 4) {
+                feed.lastElementChild.remove();
+            }
+        });
+
+        function simAction(action) {
+            fetch('/simulate/' + action).then(res => res.json());
+        }
+    </script>
+</body>
+</html>
