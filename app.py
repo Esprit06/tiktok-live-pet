@@ -1,3 +1,6 @@
+from gevent import monkey
+monkey.patch_all()
+
 import os
 import threading
 import time
@@ -8,7 +11,7 @@ from TikTokLive.events import GiftEvent, CommentEvent, LikeEvent
 from TikTokLive.client.errors import UserOfflineError
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 stages_info = {
     1: ("ไข่ภูติป่า (รอฟัก)", "/static/images/stage1.png"),
@@ -105,7 +108,7 @@ async def on_comment(event: CommentEvent):
     text = event.comment.strip().lower()
     
     if text in ["!status", "!สเตตัส", "!level"]:
-        status_msg = f"📊 [{pet_stage['stage_name']}] EXP: {pet_stage['exp']}/{pet_stage['max_exp']} | ความอิ่ม: {pet_stage['hunger']}%"
+        status_msg = f"📊 [{pet_state['stage_name']}] EXP: {pet_state['exp']}/{pet_state['max_exp']} | ความอิ่ม: {pet_state['hunger']}%"
         socketio.emit('live_event', {'user': "System", 'text': f"🤖 บอทตอบ {user}: {status_msg}"})
         
     elif text in ["!help", "!วิธีเล่น", "!กติกา"]:
@@ -162,7 +165,7 @@ def run_tiktok_client():
     except UserOfflineError:
         pass
 
-# 🚀 เริ่มรัน Threads ทันทีที่โมดูลถูกโหลด (รองรับ Gunicorn บน Cloud)
+# รัน Background Threads ทันที
 threading.Thread(target=background_idle_engine, daemon=True).start()
 threading.Thread(target=run_tiktok_client, daemon=True).start()
 
